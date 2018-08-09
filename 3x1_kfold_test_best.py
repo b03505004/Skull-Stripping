@@ -17,7 +17,7 @@ from scipy.io import loadmat
 
 np.set_printoptions(threshold=256*256)
 
-dataset = sys.argv[2]
+dataset = sys.argv[1]
 #zs = [1,3,5,7]
 zs = [1, 3, 5]
 z_halfs = [int(i/2) for i in zs]
@@ -87,19 +87,10 @@ def getLabelIBSR20(fileName, z, z_half, label):
         label.append(temp[..., i].reshape(256, 256, 1))
 
 
-val_x1 = []
-val_label1 = []
-val_x3 = []
-val_label3 = []
-val_x5 = []
-val_label5 = []
-val_x7 = []
-val_label7 = []
-xs = []
-labels = []
-for _ in zs:
+
+"""for _ in zs:
     xs.append([])
-    labels.append([])
+    labels.append([])"""
 
 num_pic = 55
 def getTorchX(z, z_half, original, val_x):
@@ -121,26 +112,6 @@ def getTorchLabelIBSR(z, z_half, label, val_label):
     for i in range(label.shape[0]):
         val_label[-1].append(label[i, ...])
 
-
-k = int(sys.argv[1])
-print(k)
-print("K:", k)
-KK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
-for i in range(len(zs)):
-    #for brain_num in ['01', '02', '03', '04']:
-    for brain_num in KK[k*4:k*4+4]:
-        print(brain_num)
-        temp_original = []
-        temp_lab = []
-        getDataIBSR20('../ibsr/20mat/IBSR'+brain_num+'_1', zs[i], z_halfs[i], temp_original)
-        getLabelIBSR20('../ibsr/20mat/IBSR'+brain_num+'_gt', zs[i], z_halfs[i], temp_lab)
-        temp_original = np.array(temp_original)
-        temp_lab = np.array(temp_lab)
-        print(temp_original.shape, temp_lab.shape)
-        getTorchX(zs[i], z_halfs[i], temp_original, xs[i])
-        getTorchLabelIBSR(zs[i], z_halfs[i], temp_lab, labels[i])
-    print(len(xs[0]), len(labels[0]))
-    print("______________________________________")
 
 class fcn(nn.Module):
     def __init__(self, z):
@@ -264,15 +235,41 @@ def val_new(net, val_label, val_x, z, z_half):
     specificity,"conformity:",conformity,"sensibility:", sensibility)
 
 
-nets = []
-#epos = [20, 20, 14, 8, 15]
-epos = [12]
+ks = [0, 1, 2, 3, 4]
+KK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+
 for i,z in enumerate(zs):
-    temp_net = fcn(z)
-    temp_net.load_state_dict(torch.load('./models/z'+str(z)+'_k'+str(k)+'_epo'+str(epos[i])+'.pt'))
-    nets.append(temp_net)
-    #val(nets[i], labels[i], xs[i], z, z_halfs[i])
-    val_new(nets[i], labels[i], xs[i], z, z_halfs[i])
+    print("__________________________________________")
+    print("Z:", zs[i])
+    xs = []
+    labels = []
+    for k in ks:
+        print("K:", k)
+        #for brain_num in ['01', '02', '03', '04']:
+        for brain_num in KK[k*4:k*4+4]:
+            #print(brain_num)
+            temp_original = []
+            temp_lab = []
+            getDataIBSR20('../ibsr/20mat/IBSR'+brain_num+'_1', zs[i], z_halfs[i], temp_original)
+            getLabelIBSR20('../ibsr/20mat/IBSR'+brain_num+'_gt', zs[i], z_halfs[i], temp_lab)
+            temp_original = np.array(temp_original)
+            temp_lab = np.array(temp_lab)
+            #print(temp_original.shape, temp_lab.shape)
+            getTorchX(zs[i], z_halfs[i], temp_original, xs)
+            getTorchLabelIBSR(zs[i], z_halfs[i], temp_lab, labels)
+        #print(len(xs[0]), len(labels[0]))
+        #print("______________________________________")
+        nets = []
+        #epos = [20, 20, 14, 8, 15]
+        #epos = [12]
+        temp_net = fcn(z)
+        #for normal test
+        #temp_net.load_state_dict(torch.load('./models/z'+str(z)+'_k'+str(k)+'_epo'+str(epos[i])+'.pt'))
+        #for best test
+        temp_net.load_state_dict(torch.load('./models/best/'+dataset+'_z'+str(z)+'_k'+str(k)+'.pt'))
+        #nets.append(temp_net)
+        #val(nets[i], labels[i], xs[i], z, z_halfs[i])
+        val_new(temp_net, labels, xs, z, z_halfs[i])
 
 """
 def val_ensemble():
