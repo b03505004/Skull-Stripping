@@ -19,7 +19,7 @@ np.set_printoptions(threshold=256*256)
 
 dataset = sys.argv[1]
 #zs = [1,3,5,7]
-zs = [1, 3, 5]
+zs = [1]
 z_halfs = [int(i/2) for i in zs]
 
 print("Zs:", zs)
@@ -86,7 +86,28 @@ def getLabelIBSR20(fileName, z, z_half, label):
     for i in range(label_.shape[2]):
         label.append(temp[..., i].reshape(256, 256, 1))
 
+def getDataLPBA40(fileName, z, z_half, original):
+    dtype = np.dtype('<u2')
+    fid = open(fileName, 'rb')
+    xData = np.fromfile(fid, dtype)
+    fid.close()
+    xData = xData.reshape(256, -1, 256)
 
+    temp = np.zeros((256, xData.shape[1]+2*z_half, 256))
+    temp[:, z_half:temp.shape[1]-z_half, :] = xData
+    #print(temp.shape)
+    for i in range(temp.shape[1]):
+        original.append(np.flip(temp[:, i, :], 0))
+
+def getLabelLPBA40(fileName, z, z_half, label):
+    label_ = nib.load(fileName).get_data()
+    label_ = label_.reshape(256, -1, 256)
+    label_ = np.where(label_!=0, label_val, 0)
+    temp = np.zeros((256, label_.shape[1]+2*z_half, 256))
+    temp[:, z_half:temp.shape[1]-z_half, :] = label_
+
+    for i in range(temp.shape[1]):
+        label.append(np.where(np.flip(np.swapaxes(temp[:, i, :], 0,1), 0)!=0, label_val, 0).reshape(256, 256, 1))
 
 """for _ in zs:
     xs.append([])
@@ -236,7 +257,11 @@ def val_new(net, val_label, val_x, z, z_half):
 
 
 ks = [0, 1, 2, 3, 4]
-KK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+if dataset=="ibsr20":
+    KK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
+elif dataset=='lpba':
+    KK = [str(i)+str(j) for i in range(4) for j in range(10)][1:]
+    KK.append("40")
 
 for i,z in enumerate(zs):
     print("__________________________________________")
@@ -246,17 +271,32 @@ for i,z in enumerate(zs):
     for k in ks:
         print("K:", k)
         #for brain_num in ['01', '02', '03', '04']:
-        for brain_num in KK[k*4:k*4+4]:
-            #print(brain_num)
-            temp_original = []
-            temp_lab = []
-            getDataIBSR20('../ibsr/20mat/IBSR'+brain_num+'_1', zs[i], z_halfs[i], temp_original)
-            getLabelIBSR20('../ibsr/20mat/IBSR'+brain_num+'_gt', zs[i], z_halfs[i], temp_lab)
-            temp_original = np.array(temp_original)
-            temp_lab = np.array(temp_lab)
-            #print(temp_original.shape, temp_lab.shape)
-            getTorchX(zs[i], z_halfs[i], temp_original, xs)
-            getTorchLabelIBSR(zs[i], z_halfs[i], temp_lab, labels)
+        
+        if dataset=="ibsr20":
+            for brain_num in KK[k*4:k*4+4]:
+                #print(brain_num)
+                temp_original = []
+                temp_lab = []
+                getDataIBSR20('../ibsr/20mat/IBSR'+brain_num+'_1', zs[i], z_halfs[i], temp_original)
+                getLabelIBSR20('../ibsr/20mat/IBSR'+brain_num+'_gt', zs[i], z_halfs[i], temp_lab)
+                temp_original = np.array(temp_original)
+                temp_lab = np.array(temp_lab)
+                #print(temp_original.shape, temp_lab.shape)
+                getTorchX(zs[i], z_halfs[i], temp_original, xs)
+                getTorchLabelIBSR(zs[i], z_halfs[i], temp_lab, labels)
+        elif dataset=='lpba':
+            for brain_num in KK[k*8:k*8+8]:
+                #print(brain_num)
+                temp_original = []
+                temp_lab = []
+                getDataLPBA40('../lpba40/lpba_img/S'+brain_num+'.native.mri.img', zs[i], z_halfs[i], temp_original)
+                getLabelLPBA40('../lpba40/lpba_img/S'+brain_num+'.native.tissue.img', zs[i], z_halfs[i], temp_lab)
+                temp_original = np.array(temp_original)
+                temp_lab = np.array(temp_lab)
+                #print(temp_original.shape, temp_lab.shape)
+                getTorchX(zs[i], z_halfs[i], temp_original, xs)
+                getTorchLabelIBSR(zs[i], z_halfs[i], temp_lab, labels)
+
         #print(len(xs[0]), len(labels[0]))
         #print("______________________________________")
         nets = []
