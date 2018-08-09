@@ -17,7 +17,7 @@ from scipy.io import loadmat
 
 np.set_printoptions(threshold=256*256)
 
-dataset = sys.argv[2]
+#dataset = sys.argv[2]
 #zs = [1,3,5,7]
 zs = [3]
 z_halfs = [int(i/2) for i in zs]
@@ -227,7 +227,39 @@ def val(net, val_label, val_x, z, z_half):
         jaccard_sum += jintersect/jtotal
     print("AVG:", dicecoef_sum/len(val_label), jaccard_sum/len(val_label))
 
+def val_new(net, val_label, val_x, z, z_half):
+    for b,brain in enumerate(val_label):
+        tP = 0.0
+        tN = 0.0
+        fP = 0.0
+        fN = 0.0
 
+        for i in range(len(brain)):
+            val_input = Variable(val_x[b][i])
+            out = net(val_input).data.numpy()
+            out = np.reshape(out,(val_x[b][i].numpy().shape[3],256))
+            try:
+                thresh = threshold_otsu(out)
+            except:
+                thresh = 255
+            #plt.imsave(arr=val_x[b][i].numpy().reshape(z,-1,256)[z_half,...], cmap='gray', fname='./test/'+str(b)+'_'+str(i)+'_'+'input.jpg')
+            #plt.imsave(arr=out, cmap='gray', fname='./test/'+str(b)+'_'+str(i)+'_'+'b4.jpg')
+            out = np.reshape(np.where(out>=thresh, 13, 7), (-1,256))
+            #plt.imsave(arr=out, cmap='gray', fname='./test/'+str(b)+'_'+str(i)+'_'+'.jpg')
+            lab = np.reshape(np.where(brain[i]==label_val, 3, 1), (-1,256))
+            #plt.imsave(arr=np.reshape(lab,(-1,256)), cmap='gray', fname='./test/'+str(b)+'_'+str(i)+'_'+'lab.jpg')
+            temp = out+lab
+            #print(temp)
+            tP += np.sum(np.where(temp==16, 1, 0))
+            tN += np.sum(np.where(temp==8, 1, 0))
+            fP += np.sum(np.where(temp==14, 1, 0))
+            fN += np.sum(np.where(temp==10, 1, 0))
+    dice = 2*tP/(2*tP+fP+fN)
+    jaccard = tP/(tP+fP+fN)
+    sensitivity = tP/(tP+fN)
+    specificity = tN/(tN+fP)
+    conformity = 1-((fP+fN)/tP) 
+    print("dice:",dice,"jaccard:",jaccard,"sensitivity:",sensitivity,"specificity:",specificity,"conformity:",conformity)
 
 
 nets = []
@@ -238,6 +270,7 @@ for i,z in enumerate(zs):
     temp_net.load_state_dict(torch.load('./models/z'+str(z)+'_k'+str(k)+'_epo'+str(epos[i])+'.pt'))
     nets.append(temp_net)
     val(nets[i], labels[i], xs[i], z, z_halfs[i])
+    val_new(nets[i], labels[i], xs[i], z, z_halfs[i])
 
 """
 def val_ensemble():
