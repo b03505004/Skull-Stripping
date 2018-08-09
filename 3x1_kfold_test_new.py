@@ -258,8 +258,10 @@ def val_new(net, val_label, val_x, z, z_half):
     jaccard = tP/(tP+fP+fN)
     sensitivity = tP/(tP+fN)
     specificity = tN/(tN+fP)
-    conformity = 1-((fP+fN)/tP) 
-    print("dice:",dice,"jaccard:",jaccard,"sensitivity:",sensitivity,"specificity:",specificity,"conformity:",conformity)
+    conformity = 1-((fP+fN)/tP)
+    sensibility = 1-(fP/(tP+fN))
+    print("dice:",dice,"jaccard:",jaccard,"sensitivity:",sensitivity,"specificity:",\
+    specificity,"conformity:",conformity,"sensibility:", sensibility)
 
 
 nets = []
