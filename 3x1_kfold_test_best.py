@@ -256,6 +256,7 @@ def val_new(net, val_label, val_x, z, z_half):
             tN += np.sum(np.where(temp==8, 1, 0))
             fP += np.sum(np.where(temp==14, 1, 0))
             fN += np.sum(np.where(temp==10, 1, 0))
+        print(b, 2*tP/(2*tP+fP+fN))
         dice += 2*tP/(2*tP+fP+fN)
         jaccard += tP/(tP+fP+fN)
         sensitivity += tP/(tP+fN)
@@ -339,6 +340,7 @@ for i,z in enumerate(zs):
         #nets.append(temp_net)
         #val(nets[i], labels[i], xs[i], z, z_halfs[i])
         d,j,s1,s2,c,s3 = val_new(temp_net, labels, xs, z, z_halfs[i])
+        #print(d)
         dice += d
         jaccard += j
         sensitivity += s1
