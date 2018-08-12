@@ -285,8 +285,6 @@ elif dataset=='lpba':
 for i,z in enumerate(zs):
     print("__________________________________________")
     print("Z:", zs[i])
-    xs = []
-    labels = []
 
     dice = 0.0
     jaccard = 0.0
@@ -296,6 +294,9 @@ for i,z in enumerate(zs):
     sensibility = 0.0
 
     for k in ks:
+        xs = []
+        labels = []
+        print(len(xs))
         print("K:", k)
         #for brain_num in ['01', '02', '03', '04']:
         
@@ -337,8 +338,19 @@ for i,z in enumerate(zs):
         temp_net.load_state_dict(torch.load('./models/best/'+dataset+'_z'+str(z)+'_k'+str(k)+'.pt'))
         #nets.append(temp_net)
         #val(nets[i], labels[i], xs[i], z, z_halfs[i])
-        val_new(temp_net, labels, xs, z, z_halfs[i])
-
+        d,j,s1,s2,c,s3 = val_new(temp_net, labels, xs, z, z_halfs[i])
+        dice += d
+        jaccard += j
+        sensitivity += s1
+        specificity += s2
+        conformity += c
+        sensibility += s3
+    nk = len(ks)
+    print("AVG: dice:",dice/nk,"jaccard:",jaccard/nk,"sensitivity:",\
+    sensitivity/nk,"specificity:", specificity/nk,\
+    "conformity:",conformity/nk,"sensibility:", sensibility/nk)
+    print("_________________________________________________________")
+    
 """
 def val_ensemble():
     total = 0
