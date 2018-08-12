@@ -19,7 +19,7 @@ np.set_printoptions(threshold=256*256)
 
 dataset = sys.argv[1]
 #zs = [1,3,5,7]
-zs = [1, 3, 5]
+zs = [3]
 z_halfs = [int(i/2) for i in zs]
 
 print("Zs:", zs)
@@ -103,8 +103,8 @@ def getLabelLPBA40(fileName, z, z_half, label):
     label_ = nib.load(fileName).get_data()
     label_ = label_.reshape(256, -1, 256)
     label_ = np.where(label_!=0, label_val, 0)
-    temp = np.zeros((256, label_.shape[1]+2*z_half, 256))
-    temp[:, z_half:temp.shape[1]-z_half, :] = label_
+    temp = label_
+    #temp[:, :, :] = label_
 
     for i in range(temp.shape[1]):
         label.append(np.where(np.flip(np.swapaxes(temp[:, i, :], 0,1), 0)!=0, label_val, 0).reshape(256, 256, 1))
@@ -221,12 +221,16 @@ def val(net, val_label, val_x, z, z_half):
 
 def val_new(net, val_label, val_x, z, z_half):
     for b,brain in enumerate(val_label):
+        #print(len(brain))
+        #print(len(val_x[b]))
+        #print(b)
         tP = 0.0
         tN = 0.0
         fP = 0.0
         fN = 0.0
 
         for i in range(len(brain)):
+            #print("i", i)
             val_input = Variable(val_x[b][i])
             out = net(val_input).data.numpy()
             out = np.reshape(out,(val_x[b][i].numpy().shape[3],256))
@@ -296,6 +300,7 @@ for i,z in enumerate(zs):
                 #print(temp_original.shape, temp_lab.shape)
                 getTorchX(zs[i], z_halfs[i], temp_original, xs)
                 getTorchLabelIBSR(zs[i], z_halfs[i], temp_lab, labels)
+                #print(len(xs))
 
         #print(len(xs[0]), len(labels[0]))
         #print("______________________________________")
