@@ -19,7 +19,7 @@ np.set_printoptions(threshold=256*256)
 
 dataset = sys.argv[1]
 #zs = [1,3,5,7]
-zs = [3]
+zs = [1,3,5]
 z_halfs = [int(i/2) for i in zs]
 
 print("Zs:", zs)
@@ -220,6 +220,12 @@ def val(net, val_label, val_x, z, z_half):
     print("AVG:", dicecoef_sum/len(val_label), jaccard_sum/len(val_label))
 
 def val_new(net, val_label, val_x, z, z_half):
+    dice = 0.0
+    jaccard = 0.0
+    sensitivity = 0.0
+    specificity = 0.0
+    conformity = 0.0
+    sensibility = 0.0
     for b,brain in enumerate(val_label):
         #print(len(brain))
         #print(len(val_x[b]))
@@ -250,14 +256,23 @@ def val_new(net, val_label, val_x, z, z_half):
             tN += np.sum(np.where(temp==8, 1, 0))
             fP += np.sum(np.where(temp==14, 1, 0))
             fN += np.sum(np.where(temp==10, 1, 0))
-    dice = 2*tP/(2*tP+fP+fN)
-    jaccard = tP/(tP+fP+fN)
-    sensitivity = tP/(tP+fN)
-    specificity = tN/(tN+fP)
-    conformity = 1-((fP+fN)/tP)
-    sensibility = 1-(fP/(tP+fN))
-    print("dice:",dice,"jaccard:",jaccard,"sensitivity:",sensitivity,"specificity:",\
-    specificity,"conformity:",conformity,"sensibility:", sensibility)
+        dice += 2*tP/(2*tP+fP+fN)
+        jaccard += tP/(tP+fP+fN)
+        sensitivity += tP/(tP+fN)
+        specificity += tN/(tN+fP)
+        conformity += 1-((fP+fN)/tP)
+        sensibility += 1-(fP/(tP+fN))
+    numOfBrain = len(val_label)
+    dice = dice/numOfBrain
+    jaccard = jaccard/numOfBrain
+    sensitivity = sensitivity/numOfBrain
+    specificity = specificity/numOfBrain
+    conformity = conformity/numOfBrain
+    sensibility = sensibility/numOfBrain
+    print("dice:",dice,"jaccard:",jaccard,"sensitivity:",\
+    sensitivity,"specificity:", specificity,\
+    "conformity:",conformity,"sensibility:", sensibility)
+    return dice,jaccard,sensitivity,specificity,conformity,sensibility
 
 
 ks = [0, 1, 2, 3, 4]
@@ -272,6 +287,14 @@ for i,z in enumerate(zs):
     print("Z:", zs[i])
     xs = []
     labels = []
+
+    dice = 0.0
+    jaccard = 0.0
+    sensitivity = 0.0
+    specificity = 0.0
+    conformity = 0.0
+    sensibility = 0.0
+
     for k in ks:
         print("K:", k)
         #for brain_num in ['01', '02', '03', '04']:
