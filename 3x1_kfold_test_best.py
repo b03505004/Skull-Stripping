@@ -19,7 +19,7 @@ np.set_printoptions(threshold=256*256)
 
 dataset = sys.argv[1]
 #zs = [1,3,5,7]
-zs = [1]
+zs = [1, 3, 5]
 z_halfs = [int(i/2) for i in zs]
 
 print("Zs:", zs)
@@ -289,8 +289,8 @@ for i,z in enumerate(zs):
                 #print(brain_num)
                 temp_original = []
                 temp_lab = []
-                getDataLPBA40('../lpba40/lpba_img/S'+brain_num+'.native.mri.img', zs[i], z_halfs[i], temp_original)
-                getLabelLPBA40('../lpba40/lpba_img/S'+brain_num+'.native.tissue.img', zs[i], z_halfs[i], temp_lab)
+                getDataLPBA40('../lpba/lpba_img/S'+brain_num+'.native.mri.img', zs[i], z_halfs[i], temp_original)
+                getLabelLPBA40('../lpba/lpba_img/S'+brain_num+'.native.tissue.img', zs[i], z_halfs[i], temp_lab)
                 temp_original = np.array(temp_original)
                 temp_lab = np.array(temp_lab)
                 #print(temp_original.shape, temp_lab.shape)
