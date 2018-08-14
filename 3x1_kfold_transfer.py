@@ -262,7 +262,7 @@ print("________________________________________________________________________"
 
 
 if dataset=="transfer":
-    minc20Files = sorted([f for f in listdir('../minc/20/') if isfile(join('../minc/20/', f))])
+    """minc20Files = sorted([f for f in listdir('../minc/20/') if isfile(join('../minc/20/', f))])
     minc20Files = minc20Files[1:]
     for i, mFile in enumerate(minc20Files):
         if i<4:
@@ -278,12 +278,12 @@ if dataset=="transfer":
         elif mFile.find('t1w')!=-1:
             getDataMinc('../minc/20/'+mFile, z, z_half, original1)
             original1 = np.array(original1)
-            getTorchXIBSR20(z, z_half, original1, isVal)
+            getTorchXIBSR20(z, z_half, original1, isVal)"""
 
 
     bn = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
     for b in bn:
-        if b=='09' or b=='05':
+        if b=='09':# or b=='05':
             isVal = True
         else:
             isVal = False
@@ -293,10 +293,10 @@ if dataset=="transfer":
         label1 = []
         getDataIBSR(filePathX, z, z_half, original1)
         getLabelIBSR(filePathSeg, z, z_half, label1)
-        print(b)
-        print(original1.shape, label1.shape)
         label1 = np.array(label1)
         original1 = np.array(original1)
+        print(b)
+        print(original1.shape, label1.shape)
         getTorchXIBSR20(z, z_half, original1, isVal)
         getTorchLabelIBSR20(z, z_half, label1, isVal)
         #print(len(val_label), val_label[0].shape)
