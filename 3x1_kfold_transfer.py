@@ -534,6 +534,12 @@ if sys_argv_len>4:
         net.load_state_dict(torch.load('./models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(plus_epo)+'.pt'))
         val2(net, val_label2, val_x2)
 
+    if sys.argv[4] == 'transfer':
+        print("_________________________________________________LOAD________________________________________________")
+        #plus_epo = int(sys.argv[5])
+        net.load_state_dict(torch.load('./models/transfer_z'+str(z)+'_best.pt'))
+        val2(net, val_label2, val_x2)
+
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.RMSprop(net.parameters(), lr=lr, momentum=momentum, weight_decay=w_decay)
 scheduler = lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)  # decay LR by a factor of 0.5 every 9 epochs
