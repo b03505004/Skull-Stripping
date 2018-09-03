@@ -19,8 +19,7 @@ np.set_printoptions(threshold=256*256)
 
 dataset = sys.argv[1]
 #zs = [1,3,5,7]
-#zs = [1,3,5]
-zs = [1,3,5]
+zs = [3]
 z_halfs = [int(i/2) for i in zs]
 
 print("Zs:", zs)
@@ -143,7 +142,9 @@ class fcn(nn.Module):
         #self.max_pool = nn.MaxPool3d(kernel_size=(3,1,1), stride=(1,1,1))
         self.c0 = nn.Conv3d(1, 16, kernel_size=(z,1,1), stride=(1,1,1))
         self.bn_0     = nn.BatchNorm3d(16)
-        self.c02 = nn.Conv3d(16, 32, kernel_size=(1,4,4), stride=(1,2,2), padding=(0,1,1))
+        self.c01 = nn.Conv3d(16, 32, kernel_size=(1,1,1), stride=(1,1,1))
+        self.bn_01     = nn.BatchNorm3d(32)
+        self.c02 = nn.Conv3d(32, 32, kernel_size=(1,4,4), stride=(1,2,2), padding=(0,1,1))
         self.bn_02     = nn.BatchNorm3d(32)
         self.conv_1 = nn.Conv3d(32, 32, kernel_size=(1,4,4), stride=(1,2,2), padding=(0,1,1))
         self.bn_1     = nn.BatchNorm3d(32)
@@ -165,6 +166,7 @@ class fcn(nn.Module):
     def forward(self, x):
 
         x = F.dropout3d(self.bn_0(F.relu(self.c0(x))), p=0.1)
+        x = F.dropout3d(self.bn_01(F.relu(self.c01(x))), p=0.2)
         x = F.dropout3d(self.bn_02(F.relu(self.c02(x))), p=0.2)
         x = F.dropout3d(self.bn_1(F.relu(self.conv_1(x))), p=0.2)
         s1 = x
@@ -277,7 +279,7 @@ def val_new(net, val_label, val_x, z, z_half):
     return dice,jaccard,sensitivity,specificity,conformity,sensibility
 
 
-ks = [0, 1, 2, 3, 4]
+ks = [4]
 if dataset=="ibsr20":
     KK = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20']
 elif dataset=='lpba':
@@ -337,7 +339,7 @@ for i,z in enumerate(zs):
         #for normal test
         #temp_net.load_state_dict(torch.load('./models/z'+str(z)+'_k'+str(k)+'_epo'+str(epos[i])+'.pt'))
         #for best test
-        temp_net.load_state_dict(torch.load('./models/best/'+dataset+'_z'+str(z)+'_k'+str(k)+'.pt'))
+        temp_net.load_state_dict(torch.load('./models/best/'+dataset+'_z'+str(z)+'_k'+str(k)+'n.pt'))
         #nets.append(temp_net)
         #val(nets[i], labels[i], xs[i], z, z_halfs[i])
         d,j,s1,s2,c,s3 = val_new(temp_net, labels, xs, z, z_halfs[i])
