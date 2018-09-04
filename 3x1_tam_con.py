@@ -186,8 +186,8 @@ val_x = []
 val_xtc = []
 val_label = []
 
-val_x2 = []
-val_label2 = []
+#val_x2 = []
+#val_label2 = []
 """
 def getTorchX():
     for i in range(originalMinc.shape[0]):
@@ -361,7 +361,7 @@ if dataset=='lpba':
         original1 = np.array(original1)
         originalTC = np.array(originalTC)
         print(brain_num)
-        print(original1.shape, originalTC, label1.shape)
+        print(original1.shape, originalTC.shape, label1.shape)
         getTorchX(z, z_half, original1, isVal, train_x, val_x)
         getTorchX(z, z_half, originalTC, isVal, train_xtc, val_xtc)
         getTorchLabel(z, z_half, label1, isVal, train_label, val_label)
@@ -376,10 +376,10 @@ if dataset=='lpba':
 shuffle(train_label, train_x)
 training_size = len(train_label)
 print('Train label:', len(train_label), train_label[0].shape)
-print('Train x:', len(train_x), train_x[0].shape)
+print('Train x:', len(train_x), len(train_xtc), train_x[0].shape)
 #print('Val label:', len(val_label), val_label[0].shape)
 #print('Val x:', len(val_x), val_x[0].shape)
-print('Val x2:', len(val_x2), len(val_x2[0]))
+print('Val x:', len(val_x), len(val_xtc), len(val_x[0]))
 
 class fcn(nn.Module):
     def __init__(self):
@@ -424,9 +424,9 @@ class fcn(nn.Module):
         x = F.dropout3d(self.bn_02(F.relu(self.c02(x))), p=0.2)
         x = F.dropout3d(self.bn_1(F.relu(self.conv_1(x))), p=0.2)
         
-        tc = F.dropout3d(self.bn_0tc(F.relu(self.c0tc(x))), p=0.1)
-        tc = F.dropout3d(self.bn_02tc(F.relu(self.c02tc(x))), p=0.2)
-        tc = F.dropout3d(self.bn_1tc(F.relu(self.conv_1tc(x))), p=0.2)
+        tc = F.dropout3d(self.bn_0tc(F.relu(self.c0tc(tc))), p=0.1)
+        tc = F.dropout3d(self.bn_02tc(F.relu(self.c02tc(tc))), p=0.2)
+        tc = F.dropout3d(self.bn_1tc(F.relu(self.conv_1tc(tc))), p=0.2)
         
         x = x + tc
 
@@ -474,7 +474,7 @@ def val():
         return 2*union/total
 
 
-def val2(net, val_label, val_x):
+def val2(net, val_label, val_x, val_xtc):
     dicecoef_sum = 0
     jaccard_sum = 0
     for b,brain in enumerate(val_label):
@@ -528,7 +528,7 @@ if sys_argv_len>4:
         print("_________________________________________________LOAD________________________________________________")
         plus_epo = int(sys.argv[5])
         net.load_state_dict(torch.load('./models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(plus_epo)+'.pt'))
-        val2(net, val_label2, val_x2)
+        val2(net, val_label, val_x, val_xtc)
 
 criterion = nn.BCEWithLogitsLoss()
 optimizer = optim.RMSprop(net.parameters(), lr=lr, momentum=momentum, weight_decay=w_decay)
@@ -567,7 +567,7 @@ for epoch in range(epochs):  # loop over the dataset multiple times
     print("_________________________________")
     print(datetime.datetime.now())
     #v = val()
-    v2 = val2(net, val_label2, val_x2)
+    v2 = val2(net, val_label, val_x, val_xtc)
     torch.save(net.state_dict(), './models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(epoch+plus_epo+1)+'tc.pt')
     """if(v>last_val):
         early_stopping = 0
