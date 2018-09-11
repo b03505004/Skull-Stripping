@@ -47,7 +47,7 @@ originalMinc = []
 labelIBSR = []
 originalIBSR = []
 
-label_val = 255
+label_val = 1
 
 def getDataMinc(fileName):
     xData = nib.load(fileName).get_data()
@@ -98,6 +98,7 @@ def getLabelIBSR(fileName):
 
 def getDataIBSR20TC(fileName, z, z_half, original):
     xData = np.load(fileName+'.tam_con.npy')
+    xData = xData/np.max(xData)
 
     temp = np.zeros((256, 256, xData.shape[2]+2*z_half))
     temp[..., z_half:temp.shape[2]-z_half] = xData
@@ -106,8 +107,9 @@ def getDataIBSR20TC(fileName, z, z_half, original):
 
 def getDataIBSR20(fileName, z, z_half, original):
     xData = loadmat(fileName)['volume']
-    temp = np.zeros((256, 256, xData.shape[2]+2*z_half))
     xData = xData - np.min(xData)
+    xData = xData/np.max(xData)
+    temp = np.zeros((256, 256, xData.shape[2]+2*z_half))
     temp[..., z_half:temp.shape[2]-z_half] = xData
     #print(temp.shape)
     for i in range(temp.shape[2]):
@@ -124,6 +126,7 @@ def getLabelIBSR20(fileName, z, z_half, label):
 
 def getDataLPBA40TC(fileName, z, z_half, original):
     xData = np.load(fileName+'.tam_con.npy')
+    xData = xData/np.max(xData)
 
     temp = np.zeros((256, xData.shape[1]+2*z_half, 256))
     temp[:, z_half:temp.shape[1]-z_half, :] = xData
@@ -136,6 +139,7 @@ def getDataLPBA40(fileName, z, z_half, original):
     xData = np.fromfile(fid, dtype)
     fid.close()
     xData = xData.reshape(256, -1, 256)
+    xData = xData/np.max(xData)
 
     temp = np.zeros((256, xData.shape[1]+2*z_half, 256))
     temp[:, z_half:temp.shape[1]-z_half, :] = xData
@@ -338,14 +342,17 @@ if dataset=='lpba':
     ind = [str(i)+str(j) for i in range(4) for j in range(10)][1:]
     ind.append("40")
     print(ind)
-    to_fold = [ind[a] for a in range(len(ind)) if a not in range(k*8,k*8+8)]
-    to_val = [random.choice(to_fold)]
-    tempv = list(to_fold)
+    #to_fold = [ind[a] for a in range(len(ind)) if a not in range(k*8,k*8+8)]
+    if k == 0:
+        to_val = ind[20:]
+    else:
+        to_val = ind[:20]
+    """tempv = list(to_fold)
     for i in range(2):
         tempv.remove(to_val[i])
         to_val.append(random.choice(tempv))
-    print(to_val)
-    for brain_num in to_fold:
+    print(to_val)"""
+    for brain_num in ind:
         if brain_num not in to_val:
             isVal = False
         else:
@@ -356,14 +363,14 @@ if dataset=='lpba':
         originalTC = []
         getDataLPBA40('../lpba/lpba_img/S'+brain_num+'.native.mri.img', z, z_half, original1)
         getLabelLPBA40('../lpba/lpba_img/S'+brain_num+'.native.tissue.img', z, z_half, label1)
-        getDataLPBA40TC('../lpba/lpba_img/S'+brain_num+'.native.mri.img', z, z_half, originalTC)
+        #getDataLPBA40TC('../lpba/lpba_img/S'+brain_num+'.native.mri.img', z, z_half, originalTC)
         label1 = np.array(label1)
         original1 = np.array(original1)
         originalTC = np.array(originalTC)
         print(brain_num)
         print(original1.shape, originalTC.shape, label1.shape)
         getTorchX(z, z_half, original1, isVal, train_x, val_x)
-        getTorchX(z, z_half, originalTC, isVal, train_xtc, val_xtc)
+        #getTorchX(z, z_half, originalTC, isVal, train_xtc, val_xtc)
         getTorchLabel(z, z_half, label1, isVal, train_label, val_label)
         #print(len(val_label), val_label[0].shape)
         print(len(train_label), train_label[0].shape)
@@ -418,17 +425,18 @@ class fcn(nn.Module):
         self.upsample_4 = nn.ConvTranspose3d(16, 1, kernel_size=(1,4,4), stride=(1,2,2), padding=(0,1,1))
         self.bn_8     = nn.BatchNorm2d(1)
         # ------------------------------for main X------------------------------
-    def forward(self, x, tc):
+    #def forward(self, x, tc):
+    def forward(self, x):
 
         x = F.dropout3d(self.bn_0(F.relu(self.c0(x))), p=0.1)
         x = F.dropout3d(self.bn_02(F.relu(self.c02(x))), p=0.2)
         x = F.dropout3d(self.bn_1(F.relu(self.conv_1(x))), p=0.2)
         
-        tc = F.dropout3d(self.bn_0tc(F.relu(self.c0tc(tc))), p=0.1)
+        """tc = F.dropout3d(self.bn_0tc(F.relu(self.c0tc(tc))), p=0.1)
         tc = F.dropout3d(self.bn_02tc(F.relu(self.c02tc(tc))), p=0.2)
-        tc = F.dropout3d(self.bn_1tc(F.relu(self.conv_1tc(tc))), p=0.2)
+        tc = F.dropout3d(self.bn_1tc(F.relu(self.conv_1tc(tc))), p=0.2)"""
         
-        x = x + tc
+        #x = x + tc
 
         s1 = x
         x = F.dropout3d(self.bn_2(F.relu(self.conv_2(x))), p=0.3)
@@ -442,7 +450,7 @@ class fcn(nn.Module):
         s3 = F.dropout3d(self.bn_6(F.relu(self.upsample_2(s3))), p=0.3)
         s3 = s3 + s1
         s3 = F.dropout3d(self.bn_7(F.relu(self.upsample_3(s3))), p=0.3)
-        s3 = F.dropout3d(self.bn_8((self.upsample_4(s3))), p=0.2)
+        s3 = F.dropout3d(self.bn_8(F.sigmoid(self.upsample_4(s3))), p=0.2)
         return s3
         
 def val():
@@ -485,8 +493,9 @@ def val2(net, val_label, val_x, val_xtc):
         jintersect = 0
         for i in range(len(brain)):
             val_input = Variable(val_x[b][i])
-            val_inputtc = Variable(val_xtc[b][i])
-            out = net(val_input, val_inputtc).data.numpy()
+            #val_inputtc = Variable(val_xtc[b][i])
+            #out = net(val_input, val_inputtc).data.numpy()
+            out = net(val_input).data.numpy()
             out = np.reshape(out,(val_x[b][i].numpy().shape[3],256))
             try:
                 thresh = threshold_otsu(out)
@@ -494,8 +503,9 @@ def val2(net, val_label, val_x, val_xtc):
                 thresh = 255
             #print(thresh)
             plt.imsave(arr=val_x[b][i].numpy().reshape(z,-1,256)[z_half,...], cmap='gray', fname='./plot/v2_'+str(i)+'_'+'input.jpg')
+            #plt.imsave(arr=val_xtc[b][i].numpy().reshape(z,-1,256)[z_half,...], cmap='gray', fname='./plot/v2_'+str(i)+'_'+'inputtc.jpg')
             plt.imsave(arr=out, cmap='gray', fname='./plot/v2_'+str(i)+'_'+'b4.jpg')
-            out = np.reshape(np.where(out>=thresh, 1, 0), (-1,256))
+            out = np.reshape(np.where(out>=0.5, 1, 0), (-1,256))
             #print(out)
             plt.imsave(arr=out, cmap='gray', fname='./plot/v2_'+str(i)+'_'+'.jpg')
             lab = np.reshape(np.where(brain[i]==label_val, 1, 0), (-1,256))
@@ -527,7 +537,9 @@ if sys_argv_len>4:
     if sys.argv[4] == 'load':
         print("_________________________________________________LOAD________________________________________________")
         plus_epo = int(sys.argv[5])
-        net.load_state_dict(torch.load('./models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(plus_epo)+'.pt'))
+        for i in range(plus_epo//step_size):
+            lr*=gamma
+        net.load_state_dict(torch.load('./models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(plus_epo)+'notc.pt'))
         val2(net, val_label, val_x, val_xtc)
 
 criterion = nn.BCEWithLogitsLoss()
@@ -546,14 +558,15 @@ for epoch in range(epochs):  # loop over the dataset multiple times
     for i in range(training_size):
         # get the inputs
         inputX = Variable(train_x[i])
-        inputXTC = Variable(train_xtc[i])
+        #inputXTC = Variable(train_xtc[i])
         labelX = Variable(train_label[i])
 
         # zero the parameter gradients
         optimizer.zero_grad()
 
         # forward + backward + optimize
-        outputs = net(inputX, inputXTC)
+        #outputs = net(inputX, inputXTC)
+        outputs = net(inputX)
         loss = criterion(outputs, labelX)
         loss.backward()
         optimizer.step()
@@ -568,7 +581,7 @@ for epoch in range(epochs):  # loop over the dataset multiple times
     print(datetime.datetime.now())
     #v = val()
     v2 = val2(net, val_label, val_x, val_xtc)
-    torch.save(net.state_dict(), './models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(epoch+plus_epo+1)+'tc.pt')
+    torch.save(net.state_dict(), './models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(epoch+plus_epo+1)+'notc.pt')
     """if(v>last_val):
         early_stopping = 0
         last_val = v
@@ -581,7 +594,7 @@ for epoch in range(epochs):  # loop over the dataset multiple times
     else:
         early_stopping2 += 1
     if early_stopping2==0:
-        torch.save(net.state_dict(), './models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(epoch+plus_epo+1)+'tc_best.pt')
+        torch.save(net.state_dict(), './models/'+dataset+'_z'+str(z)+'_k'+str(k)+'_epo'+str(epoch+plus_epo+1)+'notc_best.pt')
     print('epo:', epoch+plus_epo+1, 'early stop:', early_stopping2)
     print("_________________________________")
 
